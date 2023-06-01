@@ -1,24 +1,54 @@
 import { StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ListItem, Avatar } from "@rneui/themed";
+import {
+	collection,
+	doc,
+	onSnapshot,
+	orderBy,
+	query,
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 const CustomListItems = ({ id, chatName, enterChat }) => {
+	const [chatMessages, setChatMessages] = useState([]);
+
+	useEffect(() => {
+		const chatRef = doc(db, "Chats", id);
+		const q = query(
+			collection(chatRef, "Messages"),
+			orderBy("timestamp", "desc")
+		);
+
+		// console.log(q);
+		const unsubscribe = onSnapshot(q, (querySnapShot) => {
+			let messages = [];
+			querySnapShot.forEach((message) => {
+				messages.push(message.data());
+			});
+			setChatMessages(messages);
+		});
+
+		return () => unsubscribe();
+	}, []);
 	return (
 		// List items from rneui
-		<ListItem>
+		<ListItem onPress={() => enterChat(id, chatName)} key={id} bottomDivider>
 			<Avatar
 				rounded
 				source={{
-					uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRssi7y7FIvHybEXvcKap4tQB4h71JgW555jlRUCp1u&s",
+					uri:
+						chatMessages[0]?.photoURL ||
+						"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRssi7y7FIvHybEXvcKap4tQB4h71JgW555jlRUCp1u&s",
 				}}
 			/>
 			<ListItem.Content>
 				<ListItem.Title style={{ fontWeight: "800" }}>
-					Youtube Chat
+					{chatName}
 				</ListItem.Title>
 				<ListItem.Subtitle numberOfLines={1} ellipsizeMode='tail'>
-					This is a test subtitle This is a test subtitle This is a test
-					subtitle This is a test subtitle This is a test subtitle
+					{chatMessages && chatMessages?.[0]?.displayName} :
+					{chatMessages && chatMessages?.[0]?.message}
 				</ListItem.Subtitle>
 			</ListItem.Content>
 		</ListItem>

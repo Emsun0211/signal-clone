@@ -6,18 +6,22 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import React, { useEffect, useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import CustomListItems from "../components/CustomListItems";
 import { Avatar } from "@rneui/themed";
 import { auth, db } from "../firebase";
 import { AntDesign, SimpleLineIcons } from "@expo/vector-icons";
+import { collection, getDocs } from "firebase/firestore";
 
 const HomeScreen = ({ navigation }) => {
+	const [Chats, setChats] = useState([]);
 	const signOut = () => {
 		auth.signOut().then(() => {
 			navigation.replace("Login");
 		});
 	};
+
+	// Editing the layout header
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			title: "Signal",
@@ -58,10 +62,40 @@ const HomeScreen = ({ navigation }) => {
 			),
 		});
 	}, [navigation]);
+
+	// Fetching Chats from firestore
+	useEffect(() => {
+		const querySnapshot = async () => {
+			const chatList = await getDocs(collection(db, "Chats"));
+
+			const gottenChats = [];
+			chatList.forEach((doc) => {
+				console.log(`${doc.id} => ${doc.data()}`);
+				gottenChats.push({ id: doc.id, data: doc.data() });
+			});
+			setChats(gottenChats);
+		};
+
+		querySnapshot();
+	}, []);
+
+	const enterChat = (id, chatName) => {
+		navigation.navigate("Chat", {
+			id,
+			chatName,
+		});
+	};
 	return (
 		<SafeAreaView>
-			<ScrollView>
-				<CustomListItems />
+			<ScrollView style={styles.container}>
+				{Chats.map(({ id, data: { chatName } }) => (
+					<CustomListItems
+						id={id}
+						chatName={chatName}
+						key={id}
+						enterChat={enterChat}
+					/>
+				))}
 			</ScrollView>
 		</SafeAreaView>
 	);
@@ -69,4 +103,8 @@ const HomeScreen = ({ navigation }) => {
 
 export default HomeScreen;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+	container: {
+		height: "100%",
+	},
+});
